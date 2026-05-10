@@ -1,6 +1,6 @@
 {
   "name": "@geosuite/ai-crawler-bots",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Curated, sourced list of AI crawler / training bot user agents, plus a small CLI to test whether a URL is reachable to each bot.",
   "type": "module",
   "license": "MIT",
