@@ -1,0 +1,52 @@
+name: Publish to npm
+
+# Runs when a tag matching `v*` is pushed (e.g. v0.2.0).
+# Re-uses the same lint+test gate as the CI workflow before publishing,
+# so a broken release never reaches the registry.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    name: Build, test, publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        # No-op for zero-runtime-dep repos; installs the runtime deps for
+        # repos that have any (e.g. llms-txt-generator's fast-xml-parser).
+        run: npm install --no-audit --no-fund --prefer-offline
+
+      - name: Syntax check
+        run: npm run lint
+
+      - name: Run tests
+        run: node --test test/*.js
+
+      - name: Verify tag matches package.json version
+        run: |
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match package.json version $PKG_VERSION"
+            exit 1
+          fi
+
+      - name: Publish
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

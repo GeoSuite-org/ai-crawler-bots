@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="GeoSuite Open">
+  <title>GeoSuite Open</title>
+  <!-- Compass mark: a thin ring with a four-point arrow inscribed inside.
+       Monocrome on transparent background — works on light and dark
+       READMEs. Stroke uses currentColor so a host can recolour with CSS
+       (e.g. `style="color:#ec4899"`). -->
+  <g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="32" cy="32" r="26" />
+    <path d="M32 12 L37 30 L32 27 L27 30 Z" fill="currentColor" />
+    <path d="M32 52 L27 34 L32 37 L37 34 Z" />
+    <path d="M12 32 L30 27 L27 32 L30 37 Z" />
+    <path d="M52 32 L34 37 L37 32 L34 27 Z" />
+    <circle cx="32" cy="32" r="2" fill="currentColor" />
+  </g>
+</svg>

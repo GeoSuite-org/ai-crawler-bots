@@ -1,0 +1,53 @@
+{
+  "name": "@geosuite/ai-crawler-bots",
+  "version": "0.2.0",
+  "description": "Curated, sourced list of AI crawler / training bot user agents, plus a small CLI to test whether a URL is reachable to each bot.",
+  "type": "module",
+  "license": "MIT",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./bots.json": "./bots.json"
+  },
+  "bin": {
+    "geosuite-bots": "bin/cli.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "bots.json",
+    "examples",
+    "assets",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "test": "node --test test/*.js",
+    "lint": "node --check src/index.js && node --check src/robots.js && node --check src/ai.js && node --check bin/cli.js && node --check test/test-loader.js && node --check test/test-robots.js && node --check test/test-ai.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/geosuite/ai-crawler-bots.git"
+  },
+  "homepage": "https://github.com/geosuite/ai-crawler-bots#readme",
+  "bugs": {
+    "url": "https://github.com/geosuite/ai-crawler-bots/issues"
+  },
+  "keywords": [
+    "ai",
+    "crawler",
+    "robots.txt",
+    "user-agent",
+    "gptbot",
+    "claudebot",
+    "perplexitybot",
+    "llm",
+    "seo",
+    "geo"
+  ],
+  "author": "GeoSuite (https://trygeosuite.it)"
+}

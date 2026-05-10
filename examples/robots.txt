@@ -1,0 +1,101 @@
+# Example robots.txt — AI-search-friendly defaults
+#
+# Strategy:
+#   - Allow on-demand "user" agents and AI search indexers so your pages
+#     can be cited in ChatGPT, Claude, Perplexity, Google AI Overviews, etc.
+#   - Disallow bulk training crawlers that won't drive traffic back to you.
+#   - Keep private surfaces (admin, internal APIs, search result pages)
+#     out of every bot's reach.
+#
+# Adjust to your business: a paywalled publisher will likely Disallow
+# the on-demand fetchers as well, while a brand site that wants AI visibility
+# should keep them allowed.
+
+
+# --- Allow: AI search indexers (drive citations and traffic) ---
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+
+# --- Allow: on-demand user fetchers (one-off requests, not bulk crawls) ---
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: MistralAI-User
+Allow: /
+
+User-agent: DuckAssistBot
+Allow: /
+
+
+# --- Allow: AI training, but only the operators you trust ---
+# These are policy-only tokens (no separate crawl) — they only control
+# whether your already-indexed content may be used to train the operator's
+# foundation models. Removing them does not affect search visibility.
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+
+# --- Disallow: bulk training crawlers ---
+# These crawl your content to train LLMs without sending traffic back.
+# Block unless you have a specific reason to opt in.
+
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: Meta-ExternalAgent
+Disallow: /
+
+User-agent: FacebookBot
+Disallow: /
+
+User-agent: cohere-training-data-crawler
+Disallow: /
+
+User-agent: Diffbot
+Disallow: /
+
+
+# --- Catch-all: protect private surfaces from every bot ---
+
+User-agent: *
+Disallow: /admin/
+Disallow: /api/
+Disallow: /search
+Disallow: /cart
+Disallow: /checkout
+Disallow: /account/
+Disallow: /*?*sessionid=
+Disallow: /*?*utm_
+
+Sitemap: https://www.example.com/sitemap.xml
