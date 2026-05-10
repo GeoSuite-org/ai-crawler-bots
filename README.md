@@ -6,6 +6,11 @@ A curated, sourced, maintained list of AI crawler and training-bot user agents â
 
 Maintained by [GeoSuite](https://trygeosuite.it).
 
+[![CI](https://github.com/TryGeoSuite/ai-crawler-bots/actions/workflows/ci.yml/badge.svg)](https://github.com/TryGeoSuite/ai-crawler-bots/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@geosuite/ai-crawler-bots.svg)](https://www.npmjs.com/package/@geosuite/ai-crawler-bots)
+[![npm downloads](https://img.shields.io/npm/dm/@geosuite/ai-crawler-bots.svg)](https://www.npmjs.com/package/@geosuite/ai-crawler-bots)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 ---
 
 ## What this is, and why it exists

@@ -2,6 +2,47 @@
 
 All notable changes to this project will be documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-05-10
+
+### Added
+
+- `watch` command: polls a URL's `/robots.txt` on a fixed interval and prints
+  a diff whenever the score or any bot's verdict changes.
+  ```
+  geosuite-bots watch https://example.com --interval=60
+  geosuite-bots watch https://example.com --interval=300 --json
+  ```
+  Human-readable diffs go to stdout; "no change" ticks go to stderr so stdout
+  stays pipeable. `--json` emits JSON lines suitable for log aggregators.
+
+## [0.2.3] - 2026-05-10
+
+### Added
+
+- README: npm version + downloads + CI badges.
+- `npm run coverage` script using Node 22's built-in
+  `--experimental-test-coverage` (zero new dependencies).
+
+### Changed
+
+- CI workflow now triggers on the `production` branch (matching the
+  actual default branch) instead of `main`. Also adds a coverage step
+  on the Node 22 matrix entry.
+
+## [0.2.2] - 2026-05-10
+
+### Changed
+
+- Republish; no source changes (resolved npm CDN propagation lag noted
+  at 0.2.1).
+
+## [0.2.1] - 2026-05-10
+
+### Added
+
+- `ai-crawler-bots` bin alias matching the npm package name so
+  `npx @geosuite/ai-crawler-bots` works without `--package=`.
+
 ## [0.2.0] - 2026-05-10
 
 ### Added

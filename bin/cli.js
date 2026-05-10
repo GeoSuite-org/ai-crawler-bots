@@ -41,6 +41,7 @@ function printHelp() {
       '  geosuite-bots list',
       '  geosuite-bots check <url> [--bot=<id>] [--timeout=<ms>] [--method=GET|HEAD]',
       '  geosuite-bots robots <url> [--timeout=<ms>] [--json] [--ai]',
+      '  geosuite-bots watch  <url> [--interval=<s>] [--timeout=<ms>] [--json]',
       '  geosuite-bots show <id>',
       '',
       'AI mode (opt-in):',
@@ -53,6 +54,7 @@ function printHelp() {
       '  geosuite-bots check https://example.com',
       '  geosuite-bots check https://example.com --bot=gptbot',
       '  geosuite-bots robots https://example.com',
+      '  geosuite-bots watch  https://example.com --interval=60',
       '',
     ].join('\n'),
   );
@@ -227,6 +229,128 @@ async function cmdRobots(positional, flags) {
 }
 
 /**
+ * Poll checkRobots on a fixed interval and print a diff whenever the score
+ * or any bot's verdict changes. Runs until Ctrl-C.
+ *
+ * Output format:
+ *   [ISO timestamp]  score: 80 → 60  (delta: -20)
+ *   BLOCKED   GPTBot      (was allowed)
+ *   ALLOWED   ClaudeBot   (was blocked)
+ *
+ * With --json each tick emits a JSON object: { ts, score, changed: [...] }.
+ * An initial run is always printed in full.
+ */
+async function cmdWatch(positional, flags) {
+  const url = positional[0];
+  if (!url) {
+    process.stderr.write('Usage: geosuite-bots watch <url> [--interval=<s>] [--timeout=<ms>] [--json]\n');
+    process.exit(2);
+  }
+
+  const intervalMs = Math.max(5, Number(flags.interval ?? 60)) * 1000;
+  const opts = { timeoutMs: flags.timeout ? Number(flags.timeout) : undefined };
+  const jsonMode = !!flags.json;
+
+  process.stderr.write(
+    `Watching ${url} every ${Math.round(intervalMs / 1000)}s — press Ctrl-C to stop\n\n`,
+  );
+
+  let prev = null;
+
+  async function tick() {
+    const ts = new Date().toISOString();
+    const result = await checkRobots(url, opts);
+
+    if (result.error) {
+      if (jsonMode) {
+        process.stdout.write(JSON.stringify({ ts, error: result.error }) + '\n');
+      } else {
+        process.stderr.write(`[${ts}] error: ${result.error}\n`);
+      }
+      return;
+    }
+
+    if (!prev) {
+      // First run — emit full picture.
+      if (jsonMode) {
+        const snap = botSnapshot(result);
+        process.stdout.write(JSON.stringify({ ts, score: result.score, initial: true, bots: snap }) + '\n');
+      } else {
+        process.stdout.write(`[${ts}]  initial check — score: ${result.score}/100\n`);
+        for (const e of result.blockedBots) {
+          process.stdout.write(`  BLOCKED   ${pad(e.bot.name, 22)}\n`);
+        }
+        for (const e of result.allowedBots) {
+          process.stdout.write(`  ALLOWED   ${pad(e.bot.name, 22)}\n`);
+        }
+        for (const e of result.notSpecifiedBots) {
+          process.stdout.write(`  NOT SET   ${pad(e.bot.name, 22)}\n`);
+        }
+        process.stdout.write('\n');
+      }
+    } else {
+      const changed = diffResults(prev, result);
+      const scoreDelta = result.score - prev.score;
+
+      if (changed.length === 0 && scoreDelta === 0) {
+        if (!jsonMode) {
+          process.stderr.write(`[${ts}]  no change  (score: ${result.score}/100)\n`);
+        }
+      } else {
+        if (jsonMode) {
+          process.stdout.write(
+            JSON.stringify({ ts, score: result.score, scoreDelta, changed }) + '\n',
+          );
+        } else {
+          const deltaStr = scoreDelta >= 0 ? `+${scoreDelta}` : String(scoreDelta);
+          process.stdout.write(
+            `[${ts}]  score: ${prev.score} → ${result.score}  (${deltaStr})\n`,
+          );
+          for (const c of changed) {
+            process.stdout.write(
+              `  ${pad(c.now.toUpperCase(), 10)}  ${pad(c.botName, 22)}  (was ${c.was})\n`,
+            );
+          }
+          process.stdout.write('\n');
+        }
+      }
+    }
+
+    prev = result;
+  }
+
+  await tick();
+  const timer = setInterval(tick, intervalMs);
+
+  process.on('SIGINT', () => {
+    clearInterval(timer);
+    process.stderr.write('\nStopped.\n');
+    process.exit(0);
+  });
+}
+
+function botSnapshot(result) {
+  const out = {};
+  for (const e of result.blockedBots) out[e.bot.id ?? e.bot.name] = 'blocked';
+  for (const e of result.allowedBots) out[e.bot.id ?? e.bot.name] = 'allowed';
+  for (const e of result.notSpecifiedBots) out[e.bot.id ?? e.bot.name] = 'not_specified';
+  return out;
+}
+
+function diffResults(prev, next) {
+  const prevSnap = botSnapshot(prev);
+  const nextSnap = botSnapshot(next);
+  const changes = [];
+  for (const [id, nextVerdict] of Object.entries(nextSnap)) {
+    const prevVerdict = prevSnap[id] ?? 'not_specified';
+    if (prevVerdict !== nextVerdict) {
+      changes.push({ botName: id, was: prevVerdict, now: nextVerdict });
+    }
+  }
+  return changes;
+}
+
+/**
  * Ask the LLM to translate the structured robots verdict into a short
  * plain-language paragraph for non-technical operators.
  *
@@ -285,6 +409,9 @@ async function main() {
       return;
     case 'robots':
       await cmdRobots(positional, flags);
+      return;
+    case 'watch':
+      await cmdWatch(positional, flags);
       return;
     default:
       process.stderr.write(`Unknown command: ${command}\n`);
