@@ -31,11 +31,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/geosuite/ai-crawler-bots.git"
+    "url": "git+https://github.com/TryGeoSuite/ai-crawler-bots.git"
   },
-  "homepage": "https://github.com/geosuite/ai-crawler-bots#readme",
+  "homepage": "https://github.com/TryGeoSuite/ai-crawler-bots#readme",
   "bugs": {
-    "url": "https://github.com/geosuite/ai-crawler-bots/issues"
+    "url": "https://github.com/TryGeoSuite/ai-crawler-bots/issues"
   },
   "keywords": [
     "ai",

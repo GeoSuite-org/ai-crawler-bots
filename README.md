@@ -242,9 +242,9 @@ turn it on against URLs you wouldn't paste into their UI.
 
 `ai-crawler-bots` is part of a small family of zero-dependency CLIs we maintain to make Generative Engine Optimization (GEO) measurable from the terminal:
 
-- [`@geosuite/schema-templates`](https://github.com/geosuite/schema-templates) — copy-paste-ready schema.org JSON-LD templates with a local validator. Use it to ship `Organization`, `Product`, `FAQPage`, `BreadcrumbList`, etc. without hand-rolling structured data.
-- [`@geosuite/llms-txt-generator`](https://github.com/geosuite/llms-txt-generator) — turn a `sitemap.xml` into the `llms.txt` standard from [llmstxt.org](https://llmstxt.org/), so LLMs can index your most useful pages.
-- [`@geosuite/sitemap-builder`](https://github.com/geosuite/sitemap-builder) — crawl a site and emit a valid `sitemap.xml`, for sites that ship without one.
+- [`@geosuite/schema-templates`](https://github.com/TryGeoSuite/schema-templates) — copy-paste-ready schema.org JSON-LD templates with a local validator. Use it to ship `Organization`, `Product`, `FAQPage`, `BreadcrumbList`, etc. without hand-rolling structured data.
+- [`@geosuite/llms-txt-generator`](https://github.com/TryGeoSuite/llms-txt-generator) — turn a `sitemap.xml` into the `llms.txt` standard from [llmstxt.org](https://llmstxt.org/), so LLMs can index your most useful pages.
+- [`@geosuite/sitemap-builder`](https://github.com/TryGeoSuite/sitemap-builder) — crawl a site and emit a valid `sitemap.xml`, for sites that ship without one.
 
 The same checks (managed by humans, not vibes) are also surfaced as a hosted product at [trygeosuite.it](https://trygeosuite.it) for teams who want history, alerts, and CTAs wired into their content pipeline.
 
