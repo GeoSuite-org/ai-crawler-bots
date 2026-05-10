@@ -49,5 +49,8 @@
     "seo",
     "geo"
   ],
-  "author": "GeoSuite (https://trygeosuite.it)"
+  "author": "GeoSuite (https://trygeosuite.it)",
+  "contributors": [
+    "Matteo Perino <matte97.p@gmail.com> (https://github.com/matte97p)"
+  ]
 }
