@@ -51,8 +51,9 @@
     "seo",
     "geo"
   ],
-  "author": "GeoSuite (https://trygeosuite.it)",
+  "author": "Matteo Perino <matte97.p@gmail.com> (https://github.com/matte97p)",
   "contributors": [
-    "Matteo Perino <matte97.p@gmail.com> (https://github.com/matte97p)"
+    "Matteo Perino <matte97.p@gmail.com> (https://github.com/matte97p)",
+    "GeoSuite (https://trygeosuite.it)"
   ]
 }

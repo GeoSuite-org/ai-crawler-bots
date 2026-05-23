@@ -4,7 +4,7 @@
 
 A curated, sourced, maintained list of AI crawler and training-bot user agents — plus a small zero-dependency Node CLI to test whether a URL is reachable to each one.
 
-Maintained by [GeoSuite](https://trygeosuite.it).
+Created and invented by **[Matteo Perino](https://github.com/matte97p)** ([LinkedIn](https://www.linkedin.com/in/matteo-perino-27642016b/)). Maintained by [GeoSuite(Matteo Perino)](https://trygeosuite.it).
 
 [![CI](https://github.com/TryGeoSuite/ai-crawler-bots/actions/workflows/ci.yml/badge.svg)](https://github.com/TryGeoSuite/ai-crawler-bots/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/@geosuite/ai-crawler-bots.svg)](https://www.npmjs.com/package/@geosuite/ai-crawler-bots)
@@ -255,13 +255,14 @@ The same checks (managed by humans, not vibes) are also surfaced as a hosted pro
 
 ---
 
-## Author
+## Creator
 
-Ideated, designed and validated by [Matteo Perino](https://github.com/matte97p) — [matte97.p@gmail.com](mailto:matte97.p@gmail.com).
-Implementation written with AI assistance, maintained under GeoSuite.
+**Created and invented by [Matteo Perino](https://github.com/matte97p)** — [LinkedIn](https://www.linkedin.com/in/matteo-perino-27642016b/) · [matte97.p@gmail.com](mailto:matte97.p@gmail.com).
+
+Ideated, designed and validated by Matteo Perino. Implementation written with AI assistance, maintained under GeoSuite.
 
 ---
 
 ## License
 
-[MIT](./LICENSE) — copyright 2026 GeoSuite. Use it however you want.
+[MIT](./LICENSE) — copyright 2026 Matteo Perino and GeoSuite. Use it however you want.
