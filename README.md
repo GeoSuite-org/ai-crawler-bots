@@ -98,6 +98,7 @@ geosuite-bots list
 geosuite-bots show <id>
 geosuite-bots check <url> [--bot=<id>] [--timeout=<ms>] [--method=GET|HEAD]
 geosuite-bots robots <url> [--timeout=<ms>] [--json]
+geosuite-bots logs <file|-> [--since=<date>] [--until=<date>] [--json]
 ```
 
 ### `list`
@@ -190,6 +191,56 @@ The `robots` command surfaces what `check` cannot:
 - **Managed-section detection**: when a CDN injects a block (e.g. `# BEGIN Cloudflare Managed content` … `# END Cloudflare Managed Content`), the report tells you the section won over your own rules — typical Cloudflare AI Crawl Control footprint.
 - **Intentional gating**: `Disallow:` rules pointing at recognized private surfaces (`/admin`, `/auth`, `/cart`, …) are surfaced as positive signals — they don't penalize the score.
 - **Content-Signal**: parsed and reported per group, when present.
+
+### `logs <file>`
+
+`check` and `robots` answer *can a bot reach this site*. `logs` answers the other half — *did it actually crawl, and what did it get back* — by reading a server access log and matching every request's User-Agent against the tracked bots. No network, streams line by line (multi-GB logs are fine), reads from a file or stdin (`-`).
+
+A sample log ships in the repo, so you can try it without your own:
+
+```bash
+$ geosuite-bots logs examples/access.log
+```
+
+```bash
+$ geosuite-bots logs ./access.log
+Parsed 48,210 of 48,235 lines  (25 unrecognized)
+Bot activity from 2026-05-01 00:03:11 UTC to 2026-05-27 14:02:50 UTC
+
+BOT                     HITS      LAST SEEN               2xx/3xx/4xx/5xx
+-------------------------------------------------------------------------
+GPTBot                  1,204     2026-05-26 14:02:00 UTC  1180/0/24/0  ⚠ some blocked/4xx
+ClaudeBot               312       2026-05-25 09:11:00 UTC  312/0/0/0
+PerplexityBot           88        2026-05-27 02:40:00 UTC  80/0/8/0  ⚠ some blocked/4xx
+
+3 of 22 trackable bots seen. Not seen: ChatGPT-User, OAI-SearchBot, ...
+Tip: cross-check with `geosuite-bots robots <site>` — a bot allowed in robots.txt but 4xx-ing here is being blocked at the CDN/WAF.
+```
+
+Details:
+
+- **Formats**: Combined Log Format (Apache/nginx default) and JSON lines (nginx `escape=json`, Vector, Cloudflare Logpush, …) are auto-detected per line. Cloudflare Logpush field names (`ClientRequestUserAgent`, `EdgeResponseStatus`, `EdgeStartTimestamp`) are recognized too, so a Logpush export drops straight in. Common Log Format has no User-Agent field, so it can't match a bot — use Combined. A `.gz` file path is gunzipped transparently (rotated logs ship compressed).
+- **Status breakdown** tells you reach, not just presence: a bot with 4xx hits is being served errors. Cross-referenced with `robots`, that pinpoints a CDN/WAF block that robots.txt alone wouldn't reveal.
+- **`--since` / `--until`** accept `YYYY-MM-DD` or an ISO datetime to window the report.
+- **Policy-only tokens** (Google-Extended, Applebot-Extended) are robots.txt directives with no real User-Agent, so they never appear here and aren't counted as "trackable".
+- **`--json`** emits the full structured report (per-bot hits, status buckets, first/last seen, sample paths, unseen bots) for piping into other tooling.
+
+> A User-Agent is self-reported — anyone can claim to be GPTBot. For authoritative attribution, reverse-DNS the source IP against the operator's published ranges. `logs` reports what the UA *claims*; treat aggressive unknown traffic with suspicion.
+
+#### Cloudflare (no server access? use Logpush exports)
+
+If Cloudflare sits in front of your site you don't have a classic `access.log`, but you can export the equivalent and feed it straight in — `logs` already understands Cloudflare's field names:
+
+1. **Logpush job** → Cloudflare dashboard → your domain → *Analytics & Logs → Logpush*.
+2. **Destination**: an object store you control (R2, S3, GCS) or any HTTP endpoint. Logpush writes gzipped newline-delimited JSON batches.
+3. **Fields**: include at least `ClientRequestUserAgent`, `EdgeResponseStatus`, `EdgeStartTimestamp` (and `ClientRequestPath` if you want sample paths).
+4. **Analyze** the downloaded batch — `.gz` is gunzipped transparently:
+
+```bash
+$ geosuite-bots logs cloudflare-logpush-batch.log.gz
+```
+
+No remapping needed: `ClientRequestUserAgent` → UA, `EdgeResponseStatus` → status, `EdgeStartTimestamp` (RFC3339 *or* unix-nanosecond) → timestamp are recognized automatically. This is a one-shot CLI over a file you already have — the CLI never receives a live stream or stores anything.
 
 ### What `check` measures (and what it doesn't)
 

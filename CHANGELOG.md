@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-05-27
+
+### Added
+
+- `logs` command: read a server access log (file or stdin) and report which
+  tracked AI bots actually crawled, with per-bot hit counts, HTTP status
+  breakdown (2xx/3xx/4xx/5xx), and first/last-seen timestamps. Closes the loop
+  with `robots`/`check`: a bot allowed in robots.txt but 4xx-ing in the logs is
+  being blocked at the CDN/WAF.
+  ```
+  geosuite-bots logs ./access.log
+  geosuite-bots logs ./access.log --since=2026-05-01 --until=2026-05-27 --json
+  cat access.log | geosuite-bots logs -
+  ```
+  Auto-detects Combined Log Format and JSON-line logs (including Cloudflare
+  Logpush field names — `ClientRequestUserAgent`, `EdgeResponseStatus`,
+  `EdgeStartTimestamp`, incl. unix-nanosecond timestamps); streams line by line
+  so multi-GB logs never sit in memory. A `.gz` file path is gunzipped
+  transparently via Node's built-in `zlib` (still zero dependencies). New
+  library exports `createLogAnalyzer`, `analyzeLogText`, `parseLogLine`,
+  `matchBot`.
+- `bots.json`: new `uaToken` field per bot — the distinctive substring used to
+  match a real request's User-Agent. Policy-only directives (Google-Extended,
+  Applebot-Extended) carry `uaToken: null` since they never appear as a real UA.
+
 ## [0.3.2] - 2026-05-23
 
 ### Changed

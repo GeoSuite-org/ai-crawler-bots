@@ -4,7 +4,10 @@
 //   geosuite-bots check <url>
 //   geosuite-bots check <url> --bot=<id>
 
-import { loadBots, getBot, testBot, testAllBots, checkRobots } from '../src/index.js';
+import { createInterface } from 'node:readline';
+import { createReadStream } from 'node:fs';
+import { createGunzip } from 'node:zlib';
+import { loadBots, getBot, testBot, testAllBots, checkRobots, createLogAnalyzer } from '../src/index.js';
 import { chat, detectProvider } from '../src/ai.js';
 
 const [, , command, ...rest] = process.argv;
@@ -42,6 +45,7 @@ function printHelp() {
       '  geosuite-bots check <url> [--bot=<id>] [--timeout=<ms>] [--method=GET|HEAD]',
       '  geosuite-bots robots <url> [--timeout=<ms>] [--json] [--ai]',
       '  geosuite-bots watch  <url> [--interval=<s>] [--timeout=<ms>] [--json]',
+      '  geosuite-bots logs  <file|.gz|-> [--since=<date>] [--until=<date>] [--json]',
       '  geosuite-bots show <id>',
       '',
       'AI mode (opt-in):',
@@ -55,6 +59,9 @@ function printHelp() {
       '  geosuite-bots check https://example.com --bot=gptbot',
       '  geosuite-bots robots https://example.com',
       '  geosuite-bots watch  https://example.com --interval=60',
+      '  geosuite-bots logs  ./access.log',
+      '  geosuite-bots logs  ./access.log --since=2026-05-01 --json',
+      '  cat access.log | geosuite-bots logs -',
       '',
     ].join('\n'),
   );
@@ -389,6 +396,144 @@ async function aiSummariseRobots(result) {
   );
 }
 
+/**
+ * Parse a --since / --until flag. Accepts an ISO datetime or a bare date
+ * (YYYY-MM-DD). For a bare --until date we snap to end-of-day so the whole
+ * day is included.
+ *
+ * @param {string} raw
+ * @param {'start' | 'end'} edge
+ * @returns {Date}
+ */
+function parseDateFlag(raw, edge) {
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(raw);
+  const iso = dateOnly ? `${raw}T${edge === 'end' ? '23:59:59.999' : '00:00:00.000'}` : raw;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) {
+    process.stderr.write(`Invalid date: ${raw} (expected YYYY-MM-DD or ISO datetime)\n`);
+    process.exit(2);
+  }
+  return d;
+}
+
+function fmtTime(d) {
+  if (!d) return '—';
+  return d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC').replace('Z', ' UTC');
+}
+
+/**
+ * Read an access log (file path, or `-` for stdin), match every request's
+ * User-Agent against the tracked bots, and report per-bot hit counts with
+ * status breakdown and last-seen. Streams line by line so multi-GB logs are
+ * fine. Pair with `robots` to spot policy/reality mismatches: a bot allowed
+ * in robots.txt but 4xx-ing here is being blocked at the edge.
+ */
+async function cmdLogs(positional, flags) {
+  const source = positional[0];
+  if (!source) {
+    process.stderr.write('Usage: geosuite-bots logs <file|-> [--since=<date>] [--until=<date>] [--json]\n');
+    process.exit(2);
+  }
+
+  const bots = await loadBots();
+  const analyzer = createLogAnalyzer({
+    bots,
+    since: flags.since ? parseDateFlag(String(flags.since), 'start') : null,
+    until: flags.until ? parseDateFlag(String(flags.until), 'end') : null,
+  });
+
+  // Gunzip `.gz` logs transparently (rotated logs ship compressed). zlib is
+  // a Node built-in, so this stays dependency-free.
+  let input;
+  if (source === '-') {
+    input = process.stdin;
+  } else {
+    const fileStream = createReadStream(source);
+    input = source.endsWith('.gz') ? fileStream.pipe(createGunzip()) : fileStream;
+  }
+  await new Promise((resolve, reject) => {
+    input.on('error', reject);
+    const rl = createInterface({ input, crlfDelay: Infinity });
+    rl.on('line', (line) => analyzer.feed(line));
+    rl.on('close', resolve);
+  }).catch((err) => {
+    process.stderr.write(`error: ${err.message}\n`);
+    process.exit(1);
+  });
+
+  const r = analyzer.result();
+
+  if (flags.json) {
+    const out = {
+      totalLines: r.totalLines,
+      parsedLines: r.parsedLines,
+      unparsedLines: r.unparsedLines,
+      matchedHits: r.matchedHits,
+      range: {
+        firstSeen: r.range.firstSeen ? r.range.firstSeen.toISOString() : null,
+        lastSeen: r.range.lastSeen ? r.range.lastSeen.toISOString() : null,
+      },
+      bots: r.bots.map((s) => ({
+        id: s.bot.id,
+        name: s.bot.name,
+        owner: s.bot.owner,
+        purpose: s.bot.purpose,
+        hits: s.hits,
+        firstSeen: s.firstSeen ? s.firstSeen.toISOString() : null,
+        lastSeen: s.lastSeen ? s.lastSeen.toISOString() : null,
+        status: s.status,
+        samplePaths: s.samplePaths,
+      })),
+      unseenBots: r.unseenBots.map((b) => b.id),
+      policyOnlyBots: r.policyOnlyBots.map((b) => b.id),
+    };
+    process.stdout.write(JSON.stringify(out, null, 2) + '\n');
+    return;
+  }
+
+  process.stdout.write(
+    `Parsed ${r.parsedLines.toLocaleString()} of ${r.totalLines.toLocaleString()} lines` +
+      (r.unparsedLines ? `  (${r.unparsedLines.toLocaleString()} unrecognized)` : '') +
+      '\n',
+  );
+  if (r.range.firstSeen) {
+    process.stdout.write(`Bot activity from ${fmtTime(r.range.firstSeen)} to ${fmtTime(r.range.lastSeen)}\n`);
+  }
+  process.stdout.write('\n');
+
+  if (!r.bots.length) {
+    process.stdout.write('No tracked AI bots found in this log.\n');
+    process.stdout.write(
+      'If you expected some, check the log is in Combined or JSON format (Common Log Format has no User-Agent).\n',
+    );
+    return;
+  }
+
+  const header =
+    pad('BOT', 22) + '  ' + pad('HITS', 8) + '  ' + pad('LAST SEEN', 22) + '  ' + '2xx/3xx/4xx/5xx';
+  process.stdout.write(header + '\n');
+  process.stdout.write('-'.repeat(header.length) + '\n');
+  for (const s of r.bots) {
+    const st = s.status;
+    const breakdown = `${st['2xx']}/${st['3xx']}/${st['4xx']}/${st['5xx']}`;
+    const warn = st['4xx'] > 0 ? '  ⚠ some blocked/4xx' : '';
+    process.stdout.write(
+      pad(s.bot.name, 22) + '  ' + pad(s.hits.toLocaleString(), 8) + '  ' + pad(fmtTime(s.lastSeen), 22) + '  ' + breakdown + warn + '\n',
+    );
+  }
+
+  const seenCount = r.bots.length;
+  const trackable = bots.filter((b) => b.uaToken).length;
+  process.stdout.write(`\n${seenCount} of ${trackable} trackable bots seen.`);
+  if (r.unseenBots.length) {
+    process.stdout.write(` Not seen: ${r.unseenBots.map((b) => b.name).join(', ')}.`);
+  }
+  process.stdout.write('\n');
+  process.stdout.write(
+    'Tip: cross-check with `geosuite-bots robots <site>` — a bot allowed in robots.txt but 4xx-ing here is being blocked at the CDN/WAF.\n',
+  );
+}
+
 async function main() {
   const { flags, positional } = parseFlags(rest);
 
@@ -412,6 +557,9 @@ async function main() {
       return;
     case 'watch':
       await cmdWatch(positional, flags);
+      return;
+    case 'logs':
+      await cmdLogs(positional, flags);
       return;
     default:
       process.stderr.write(`Unknown command: ${command}\n`);

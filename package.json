@@ -1,6 +1,6 @@
 {
   "name": "@geosuite/ai-crawler-bots",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "Curated, sourced list of AI crawler / training bot user agents, plus a small CLI to test whether a URL is reachable to each bot.",
   "type": "module",
   "license": "MIT",
@@ -26,7 +26,7 @@
   "scripts": {
     "test": "node --test test/*.js",
     "coverage": "node --experimental-test-coverage --test test/*.js",
-    "lint": "node --check src/index.js && node --check src/robots.js && node --check src/ai.js && node --check bin/cli.js && node --check test/test-loader.js && node --check test/test-robots.js && node --check test/test-ai.js"
+    "lint": "node --check src/index.js && node --check src/robots.js && node --check src/logs.js && node --check src/ai.js && node --check bin/cli.js && node --check test/test-loader.js && node --check test/test-robots.js && node --check test/test-ai.js && node --check test/test-logs.js"
   },
   "engines": {
     "node": ">=20"
