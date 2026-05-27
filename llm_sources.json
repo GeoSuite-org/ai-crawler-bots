@@ -1,0 +1,90 @@
+[
+  {
+    "id": "chatgpt",
+    "name": "ChatGPT",
+    "owner": "OpenAI",
+    "hosts": ["chatgpt.com", "chat.openai.com"],
+    "kind": "assistant",
+    "notes": "Referrals from ChatGPT answers (chatgpt.com) and the legacy chat.openai.com host."
+  },
+  {
+    "id": "perplexity",
+    "name": "Perplexity",
+    "owner": "Perplexity",
+    "hosts": ["perplexity.ai"],
+    "kind": "search",
+    "notes": "Perplexity sends a referrer on cited-source clicks; matches the apex and any subdomain (www.perplexity.ai)."
+  },
+  {
+    "id": "gemini",
+    "name": "Gemini",
+    "owner": "Google",
+    "hosts": ["gemini.google.com", "bard.google.com"],
+    "kind": "assistant",
+    "notes": "Google Gemini (and the retired Bard host). Distinct from organic google.com search."
+  },
+  {
+    "id": "copilot",
+    "name": "Microsoft Copilot",
+    "owner": "Microsoft",
+    "hosts": ["copilot.microsoft.com", "copilot.cloud.microsoft"],
+    "kind": "assistant",
+    "notes": "Microsoft Copilot. bing.com is intentionally excluded — it conflates organic Bing search with Copilot."
+  },
+  {
+    "id": "claude",
+    "name": "Claude",
+    "owner": "Anthropic",
+    "hosts": ["claude.ai"],
+    "kind": "assistant",
+    "notes": "Anthropic Claude web app. Citation click-throughs are rarer than search-style assistants."
+  },
+  {
+    "id": "you",
+    "name": "You.com",
+    "owner": "You.com",
+    "hosts": ["you.com"],
+    "kind": "search",
+    "notes": "You.com grounded AI search."
+  },
+  {
+    "id": "poe",
+    "name": "Poe",
+    "owner": "Quora",
+    "hosts": ["poe.com"],
+    "kind": "assistant",
+    "notes": "Quora's Poe multi-model assistant."
+  },
+  {
+    "id": "mistral",
+    "name": "Le Chat",
+    "owner": "Mistral AI",
+    "hosts": ["chat.mistral.ai"],
+    "kind": "assistant",
+    "notes": "Mistral's Le Chat assistant."
+  },
+  {
+    "id": "meta-ai",
+    "name": "Meta AI",
+    "owner": "Meta",
+    "hosts": ["meta.ai"],
+    "kind": "assistant",
+    "notes": "Meta AI assistant."
+  },
+  {
+    "id": "deepseek",
+    "name": "DeepSeek",
+    "owner": "DeepSeek",
+    "hosts": ["chat.deepseek.com"],
+    "kind": "assistant",
+    "notes": "DeepSeek chat web app."
+  },
+  {
+    "id": "grok",
+    "name": "Grok",
+    "owner": "xAI",
+    "hosts": ["grok.com", "x.ai"],
+    "kind": "assistant",
+    "notes": "xAI Grok web app."
+  }
+]

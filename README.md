@@ -99,6 +99,7 @@ geosuite-bots show <id>
 geosuite-bots check <url> [--bot=<id>] [--timeout=<ms>] [--method=GET|HEAD]
 geosuite-bots robots <url> [--timeout=<ms>] [--json]
 geosuite-bots logs <file|-> [--since=<date>] [--until=<date>] [--json]
+geosuite-bots referrers <file.csv|-> [--source-col=<h>] [--count-col=<h>] [--json]
 ```
 
 ### `list`
@@ -241,6 +242,33 @@ $ geosuite-bots logs cloudflare-logpush-batch.log.gz
 ```
 
 No remapping needed: `ClientRequestUserAgent` → UA, `EdgeResponseStatus` → status, `EdgeStartTimestamp` (RFC3339 *or* unix-nanosecond) → timestamp are recognized automatically. This is a one-shot CLI over a file you already have — the CLI never receives a live stream or stores anything.
+
+### `referrers <file.csv>`
+
+`logs` sees which AI **bots crawled** you (server-side). `referrers` sees the next funnel stage — which AI answers **sent you a human** — by reading an analytics CSV export (GA4, Plausible, Matomo) and classifying the traffic source against a curated list of AI assistants / answer engines (`llm_sources.json`). Offline, no API, no OAuth: you export the CSV, it does the rest.
+
+```bash
+$ geosuite-bots referrers ./ga4-traffic.csv
+Source column: "Session source"   Count column: "Sessions"
+Parsed 312 rows
+
+AI SOURCE               SESSIONS      SHARE OF AI
+-------------------------------------------------
+ChatGPT                 1,204         74.2%
+Perplexity              312           19.2%
+Gemini                  107           6.6%
+
+1,623 AI-referred sessions of 50,516 total (3.21%).
+```
+
+Details:
+
+- **Why it's separate from `logs`**: bots don't run JavaScript, so they never appear in GA4; humans arriving from an AI answer do. Crawl reachability and click-through are different questions — this answers the second.
+- **Input**: any CSV with a source/referrer column. GA4's `#`-commented export preamble is skipped automatically; the source column (`Session source`, `Source / medium`, `Referrer`, …) and a count column (`Sessions`, `Users`, …) are auto-detected. Override with `--source-col` / `--count-col`. With no count column it counts rows.
+- **Matching**: apex host and any subdomain (`www.perplexity.ai` → Perplexity). `google.com` is deliberately *not* Gemini, and `bing.com` is *not* Copilot — organic search is excluded so the number means "AI answer engines", not "anything Google/Microsoft".
+- **`--json`** emits the full structured result (per-source sessions, matched hosts, totals, top unmatched sources).
+
+> Referral attribution under-counts. Many assistants strip the `Referer`, and a citation read without a click leaves no session at all. Read this as a floor on AI-driven traffic, not a census — and pair it with `logs` for the crawl side.
 
 ### What `check` measures (and what it doesn't)
 

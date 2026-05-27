@@ -7,7 +7,7 @@
 import { createInterface } from 'node:readline';
 import { createReadStream } from 'node:fs';
 import { createGunzip } from 'node:zlib';
-import { loadBots, getBot, testBot, testAllBots, checkRobots, createLogAnalyzer } from '../src/index.js';
+import { loadBots, getBot, testBot, testAllBots, checkRobots, createLogAnalyzer, analyzeReferrers } from '../src/index.js';
 import { chat, detectProvider } from '../src/ai.js';
 
 const [, , command, ...rest] = process.argv;
@@ -46,6 +46,7 @@ function printHelp() {
       '  geosuite-bots robots <url> [--timeout=<ms>] [--json] [--ai]',
       '  geosuite-bots watch  <url> [--interval=<s>] [--timeout=<ms>] [--json]',
       '  geosuite-bots logs  <file|.gz|-> [--since=<date>] [--until=<date>] [--json]',
+      '  geosuite-bots referrers <file.csv|-> [--source-col=<h>] [--count-col=<h>] [--json]',
       '  geosuite-bots show <id>',
       '',
       'AI mode (opt-in):',
@@ -62,6 +63,7 @@ function printHelp() {
       '  geosuite-bots logs  ./access.log',
       '  geosuite-bots logs  ./access.log --since=2026-05-01 --json',
       '  cat access.log | geosuite-bots logs -',
+      '  geosuite-bots referrers ./ga4-traffic.csv',
       '',
     ].join('\n'),
   );
@@ -534,6 +536,83 @@ async function cmdLogs(positional, flags) {
   );
 }
 
+/**
+ * Read an analytics CSV export (GA4 / Plausible / Matomo, file or stdin) and
+ * report how many human sessions each AI assistant / answer engine referred.
+ * The observed-click counterpart to `logs` (observed crawl): a citation that
+ * gets read but not clicked leaves no row here, so treat counts as a floor.
+ */
+async function cmdReferrers(positional, flags) {
+  const source = positional[0];
+  if (!source) {
+    process.stderr.write('Usage: geosuite-bots referrers <file.csv|-> [--source-col=<h>] [--count-col=<h>] [--json]\n');
+    process.exit(2);
+  }
+
+  let text = '';
+  if (source === '-') {
+    for await (const chunk of process.stdin) text += chunk;
+  } else {
+    const { readFile } = await import('node:fs/promises');
+    text = await readFile(source, 'utf8');
+  }
+
+  const r = await analyzeReferrers(text, {
+    sourceColumn: flags['source-col'] ? String(flags['source-col']) : undefined,
+    countColumn: flags['count-col'] ? String(flags['count-col']) : undefined,
+  });
+
+  if (flags.json) {
+    process.stdout.write(JSON.stringify(r, null, 2) + '\n');
+    return;
+  }
+
+  if (!r.columns.source) {
+    process.stderr.write(
+      'Could not find a source/referrer column. Pass --source-col=<header> (and --count-col=<header>).\n',
+    );
+    process.exit(1);
+  }
+
+  process.stdout.write(
+    `Source column: "${r.columns.source}"` +
+      (r.columns.count ? `   Count column: "${r.columns.count}"` : '   (no count column — counting rows)') +
+      '\n',
+  );
+  process.stdout.write(`Parsed ${r.totalRows.toLocaleString()} rows\n\n`);
+
+  if (!r.sources.length) {
+    process.stdout.write('No AI-assistant referral traffic found in this export.\n');
+    if (r.unmatchedSample.length) {
+      process.stdout.write(
+        'Top non-AI sources: ' +
+          r.unmatchedSample.map((u) => `${u.host} (${u.sessions.toLocaleString()})`).join(', ') +
+          '\n',
+      );
+    }
+    return;
+  }
+
+  const header = pad('AI SOURCE', 22) + '  ' + pad('SESSIONS', 12) + '  ' + 'SHARE OF AI';
+  process.stdout.write(header + '\n');
+  process.stdout.write('-'.repeat(header.length) + '\n');
+  for (const s of r.sources) {
+    const share = r.llmSessions ? ((s.sessions / r.llmSessions) * 100).toFixed(1) : '0.0';
+    process.stdout.write(
+      pad(s.name, 22) + '  ' + pad(s.sessions.toLocaleString(), 12) + '  ' + `${share}%` + '\n',
+    );
+  }
+
+  const overall = r.totalSessions ? ((r.llmSessions / r.totalSessions) * 100).toFixed(2) : '0.00';
+  process.stdout.write(
+    `\n${r.llmSessions.toLocaleString()} AI-referred sessions ` +
+      `of ${r.totalSessions.toLocaleString()} total (${overall}%).\n`,
+  );
+  process.stdout.write(
+    'Note: referral attribution under-counts — many assistants strip the Referer, and a cited answer read without a click leaves no session. Treat this as a floor.\n',
+  );
+}
+
 async function main() {
   const { flags, positional } = parseFlags(rest);
 
@@ -560,6 +639,9 @@ async function main() {
       return;
     case 'logs':
       await cmdLogs(positional, flags);
+      return;
+    case 'referrers':
+      await cmdReferrers(positional, flags);
       return;
     default:
       process.stderr.write(`Unknown command: ${command}\n`);

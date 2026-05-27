@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-05-27
+
+### Added
+
+- `referrers` command: read an analytics CSV export (GA4, Plausible, Matomo)
+  and report how many human sessions each AI assistant / answer engine
+  referred — the click-through counterpart to `logs` (which sees bot crawls).
+  ```
+  geosuite-bots referrers ./ga4-traffic.csv
+  geosuite-bots referrers ./export.csv --source-col="Session source" --count-col=Sessions --json
+  cat export.csv | geosuite-bots referrers -
+  ```
+  Skips GA4's `#`-commented preamble, auto-detects the source + count columns,
+  matches apex host and subdomains, and deliberately excludes organic
+  google.com / bing.com so the figure means "AI answer engines". New
+  `llm_sources.json` curated list (ChatGPT, Perplexity, Gemini, Copilot,
+  Claude, You.com, Poe, Le Chat, Meta AI, DeepSeek, Grok) and library exports
+  `loadSources`, `analyzeReferrers`, `parseCsvTable`, `parseCsvLine`,
+  `classifyReferrer`, `normalizeHost`.
+
 ## [0.4.0] - 2026-05-27
 
 ### Added

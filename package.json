@@ -1,13 +1,14 @@
 {
   "name": "@geosuite/ai-crawler-bots",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Curated, sourced list of AI crawler / training bot user agents, plus a small CLI to test whether a URL is reachable to each bot.",
   "type": "module",
   "license": "MIT",
   "main": "src/index.js",
   "exports": {
     ".": "./src/index.js",
-    "./bots.json": "./bots.json"
+    "./bots.json": "./bots.json",
+    "./llm_sources.json": "./llm_sources.json"
   },
   "bin": {
     "geosuite-bots": "bin/cli.js",
@@ -17,6 +18,7 @@
     "bin",
     "src",
     "bots.json",
+    "llm_sources.json",
     "examples",
     "assets",
     "README.md",
@@ -26,7 +28,7 @@
   "scripts": {
     "test": "node --test test/*.js",
     "coverage": "node --experimental-test-coverage --test test/*.js",
-    "lint": "node --check src/index.js && node --check src/robots.js && node --check src/logs.js && node --check src/ai.js && node --check bin/cli.js && node --check test/test-loader.js && node --check test/test-robots.js && node --check test/test-ai.js && node --check test/test-logs.js"
+    "lint": "node --check src/index.js && node --check src/robots.js && node --check src/logs.js && node --check src/referrers.js && node --check src/ai.js && node --check bin/cli.js && node --check test/test-loader.js && node --check test/test-robots.js && node --check test/test-ai.js && node --check test/test-logs.js && node --check test/test-referrers.js"
   },
   "engines": {
     "node": ">=20"

@@ -206,6 +206,14 @@ function detectEdgeProvider(headers) {
 
 export { checkRobots, parseRobots, verdictForBot, intentionalGating } from './robots.js';
 export { createLogAnalyzer, analyzeLogText, parseLogLine, matchBot } from './logs.js';
+export {
+  loadSources,
+  analyzeReferrers,
+  parseCsvTable,
+  parseCsvLine,
+  classifyReferrer,
+  normalizeHost,
+} from './referrers.js';
 
 /**
  * @typedef {Object} Bot
