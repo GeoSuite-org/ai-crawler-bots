@@ -1,7 +1,7 @@
 name: Deploy web checker
 
 # Auto-deploys the hosted checker (web/) to Cloudflare Workers on every push to
-# `production` that touches the Worker or the files it bundles. Manual runs via
+# `main` that touches the Worker or the files it bundles. Manual runs via
 # the Actions tab too.
 #
 # Requires two repo secrets (Settings → Secrets and variables → Actions):
@@ -13,7 +13,7 @@ name: Deploy web checker
 
 on:
   push:
-    branches: [production]
+    branches: [main]
     paths:
       - 'web/**'
       - 'src/analyze.js'

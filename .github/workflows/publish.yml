@@ -1,11 +1,16 @@
 name: Publish to npm
 
-# Runs when a tag matching `v*` is pushed (e.g. v0.2.0).
-# Re-uses the same lint+test gate as the CI workflow before publishing,
-# so a broken release never reaches the registry.
+# Publishes to npm in two ways, both gated by lint+test:
+#   1. Push to `main` — publishes ONLY if package.json's version isn't
+#      already on npm. So you release by bumping the version in a commit
+#      (e.g. `npm version minor`); a push without a bump just skips, no error.
+#   2. Push a `v*` tag — the classic explicit release (tag must match the
+#      package.json version).
+# The version guard makes both safe: npm never sees a duplicate version.
 
 on:
   push:
+    branches: [main]
     tags:
       - 'v*'
 
@@ -38,6 +43,7 @@ jobs:
         run: node --test test/*.js
 
       - name: Verify tag matches package.json version
+        if: startsWith(github.ref, 'refs/tags/')
         run: |
           PKG_VERSION="$(node -p "require('./package.json').version")"
           TAG_VERSION="${GITHUB_REF_NAME#v}"
@@ -46,7 +52,20 @@ jobs:
             exit 1
           fi
 
+      - name: Is this version already on npm?
+        id: ver
+        run: |
+          PKG_NAME="$(node -p "require('./package.json').name")"
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          if npm view "$PKG_NAME@$PKG_VERSION" version >/dev/null 2>&1; then
+            echo "::notice::$PKG_NAME@$PKG_VERSION is already published — skipping."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish
+        if: steps.ver.outputs.publish == 'true'
         run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
