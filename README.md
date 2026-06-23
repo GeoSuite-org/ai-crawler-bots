@@ -114,6 +114,8 @@ const result = await testBot('https://www.example.com', 'gptbot');
 console.log(result.status, result.blocked);
 ```
 
+Other exports: `checkRobots(url)` (fetch + audit a site's robots.txt), `analyzeRobots({ origin, status, body, bots })` (the same audit on an already-fetched body — pure, no I/O, so it runs in edge runtimes like Cloudflare Workers), and `evaluateGate(result, gate)` (the CI-gate logic behind `--fail-under` / `--assert-*`). Plus `parseRobots`, `verdictForBot`, `loadSources`, `analyzeReferrers`, and `createLogAnalyzer`.
+
 The library has zero runtime dependencies — it uses only `node:fs`, `node:http`, `node:https`, `node:url`, and `node:path`. Node 20 or newer.
 
 ---

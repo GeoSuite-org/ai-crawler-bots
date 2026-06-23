@@ -7,6 +7,7 @@ CLI (`analyzeRobots()` + the bundled `bots.json`) — just reachable from a brow
 
 - `GET /` — the page (`page.js`)
 - `GET /api/check?url=https://example.com` — JSON verdict
+- `GET /bots` — the full curated bot list as JSON; `GET /bots/<id>` — a single bot (a free public API over `bots.json`)
 
 No database, no secrets, no tracking. It fetches only the target's `/robots.txt`.
 

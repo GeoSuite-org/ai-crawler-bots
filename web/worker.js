@@ -110,6 +110,20 @@ export default {
       return new Response(JSON.stringify(result), { headers: JSON_HEADERS });
     }
 
+    // Public read-only API over the curated bot list (the bundled bots.json).
+    if (url.pathname === '/bots' || url.pathname === '/api/bots') {
+      return new Response(JSON.stringify(bots), { headers: JSON_HEADERS });
+    }
+    const botMatch = url.pathname.match(/^\/(?:api\/)?bots\/([^/]+)$/);
+    if (botMatch) {
+      const id = decodeURIComponent(botMatch[1]).toLowerCase();
+      const bot = bots.find((b) => (b.id || '').toLowerCase() === id);
+      return new Response(JSON.stringify(bot || { error: `unknown bot id: ${id}` }), {
+        status: bot ? 200 : 404,
+        headers: JSON_HEADERS,
+      });
+    }
+
     if (url.pathname === '/') {
       return new Response(PAGE, {
         headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=3600' },
