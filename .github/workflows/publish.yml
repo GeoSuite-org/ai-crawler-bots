@@ -4,15 +4,16 @@ name: Publish to npm
 #   1. Push to `main` — publishes ONLY if package.json's version isn't
 #      already on npm. So you release by bumping the version in a commit
 #      (e.g. `npm version minor`); a push without a bump just skips, no error.
-#   2. Push a `v*` tag — the classic explicit release (tag must match the
-#      package.json version).
+#   2. Push a `vX.Y.Z` semver tag — the classic explicit release (tag must match
+#      the package.json version). The Action's moving major tag `v1` is NOT a
+#      semver tag, so it never triggers a publish.
 # The version guard makes both safe: npm never sees a duplicate version.
 
 on:
   push:
     branches: [main]
     tags:
-      - 'v*'
+      - 'v*.*.*'
 
 jobs:
   publish:
