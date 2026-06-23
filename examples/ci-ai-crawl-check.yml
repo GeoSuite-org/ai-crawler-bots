@@ -1,0 +1,31 @@
+# Drop this in .github/workflows/ to keep an eye on which AI crawlers your
+# production site lets in. Fails the run if a search/answer bot you want gets
+# blocked, or if a training bot you don't want slips through — so a stray
+# Cloudflare "Block AI bots" toggle or a bad robots.txt edit can't ship silently.
+
+name: AI Crawl Check
+
+on:
+  # Catch robots.txt regressions in PRs that touch it.
+  pull_request:
+    paths:
+      - 'public/robots.txt'
+      - 'static/robots.txt'
+  # And re-check production on a schedule (CDN policies change out from under you).
+  schedule:
+    - cron: '0 6 * * 1' # every Monday 06:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  ai-crawl-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: TryGeoSuite/ai-crawler-bots@v1
+        with:
+          url: https://example.com
+          # Search + on-demand bots drive citations/traffic — they MUST stay reachable.
+          assert-allowed: oai-searchbot,perplexitybot,chatgpt-user
+          # Bulk training crawlers MUST stay blocked (drop this line if you opt in).
+          assert-blocked: gptbot,claudebot
+          # Optional overall floor on the AI-visibility score (0-100).
+          fail-under: 50

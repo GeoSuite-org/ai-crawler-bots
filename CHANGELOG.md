@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **CI gate** for the `robots` command: `--fail-under=<n>`, `--assert-allowed=<ids>`,
+  and `--assert-blocked=<ids>`. `robots` now exits `1` when a gate fails (`2` on a
+  bad flag), so it can guard a build — e.g. catch the day a CDN starts blocking
+  ChatGPT Search, or a `robots.txt` edit lets a training crawler back in.
+  ```
+  geosuite-bots robots https://example.com --assert-allowed=oai-searchbot,perplexitybot
+  geosuite-bots robots https://example.com --assert-blocked=gptbot,claudebot --fail-under=50
+  ```
+- **`AI Crawl Check` GitHub Action** (`action.yml`): runs the same audit in CI,
+  writes a per-bot verdict table to the job summary, exposes `score` / `blocked` /
+  `allowed` as step outputs, and annotates the PR inline on failure. Copy-paste
+  workflow in `examples/ci-ai-crawl-check.yml`.
+- New library export `evaluateGate(result, gate)` — the pure, network-free gate
+  evaluator shared by the CLI and the Action so the two can't disagree on a verdict.
+
 ## [0.5.0] - 2026-05-27
 
 ### Added

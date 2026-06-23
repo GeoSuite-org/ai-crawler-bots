@@ -1,0 +1,58 @@
+name: 'AI Crawl Check'
+description: 'Audit which AI crawlers (GPTBot, ClaudeBot, PerplexityBot, Google-Extended, …) your site allows or blocks in robots.txt — and fail the build when the wrong ones get in or out.'
+author: 'Matteo Perino'
+
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  url:
+    description: 'URL of the site to check. Its /robots.txt is fetched and audited against every tracked AI bot.'
+    required: true
+  fail-under:
+    description: 'Fail the job if the AI-visibility score (0-100) is below this number. Leave empty for no score gate.'
+    required: false
+    default: ''
+  assert-allowed:
+    description: 'Comma-separated bot ids that MUST be reachable — fail if any is blocked in robots.txt (e.g. oai-searchbot,perplexitybot).'
+    required: false
+    default: ''
+  assert-blocked:
+    description: 'Comma-separated bot ids that MUST be blocked — fail if any is reachable (e.g. gptbot,claudebot).'
+    required: false
+    default: ''
+  timeout:
+    description: 'Per-request timeout in milliseconds.'
+    required: false
+    default: ''
+
+outputs:
+  score:
+    description: 'AI-visibility score, 0-100.'
+    value: ${{ steps.run.outputs.score }}
+  blocked:
+    description: 'Comma-separated ids of bots blocked in robots.txt.'
+    value: ${{ steps.run.outputs.blocked }}
+  allowed:
+    description: 'Comma-separated ids of bots allowed in robots.txt.'
+    value: ${{ steps.run.outputs.allowed }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Audit robots.txt
+      id: run
+      shell: bash
+      run: node "${{ github.action_path }}/action/run.mjs"
+      env:
+        INPUT_URL: ${{ inputs.url }}
+        INPUT_FAIL_UNDER: ${{ inputs.fail-under }}
+        INPUT_ASSERT_ALLOWED: ${{ inputs.assert-allowed }}
+        INPUT_ASSERT_BLOCKED: ${{ inputs.assert-blocked }}
+        INPUT_TIMEOUT: ${{ inputs.timeout }}

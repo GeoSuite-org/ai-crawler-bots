@@ -1,0 +1,42 @@
+name: Deploy web checker
+
+# Auto-deploys the hosted checker (web/) to Cloudflare Workers on every push to
+# `production` that touches the Worker or the files it bundles. Manual runs via
+# the Actions tab too.
+#
+# Requires two repo secrets (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN   — a token from the GeoSuite Cloudflare account,
+#                            scoped "Edit Cloudflare Workers" (Workers Scripts:Edit
+#                            + Account Settings:Read). NOT a token you've pasted
+#                            anywhere; create a fresh, scoped one.
+#   CLOUDFLARE_ACCOUNT_ID  — the GeoSuite account id (3e3b18b9…).
+
+on:
+  push:
+    branches: [production]
+    paths:
+      - 'web/**'
+      - 'src/analyze.js'
+      - 'bots.json'
+      - '.github/workflows/deploy-web.yml'
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    # Don't run in forks (they won't have the secrets).
+    if: github.repository == 'TryGeoSuite/ai-crawler-bots'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: web
+          command: deploy

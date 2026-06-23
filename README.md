@@ -1,15 +1,42 @@
-<p align="center"><img src="./assets/logo.svg" alt="GeoSuite Open" width="72"></p>
+<p align="center"><img src="./assets/logo.svg" alt="ai-crawler-bots" width="72"></p>
 
 # ai-crawler-bots
 
-A curated, sourced, maintained list of AI crawler and training-bot user agents — plus a small zero-dependency Node CLI to test whether a URL is reachable to each one.
+**See which AI crawlers can read your site — and fail your build when the wrong ones get in or out.**
 
-Created and invented by **[Matteo Perino](https://github.com/matte97p)** ([LinkedIn](https://www.linkedin.com/in/matteo-perino-27642016b/)). Maintained by [GeoSuite(Matteo Perino)](https://trygeosuite.it).
+One curated, operator-sourced list of AI crawler & training-bot user agents — GPTBot, ClaudeBot, PerplexityBot, Google-Extended and 20 more — plus a zero-dependency Node CLI (and a GitHub Action) to audit your `robots.txt`, test live reachability, read your access logs, and gate it all in CI.
 
 [![CI](https://github.com/TryGeoSuite/ai-crawler-bots/actions/workflows/ci.yml/badge.svg)](https://github.com/TryGeoSuite/ai-crawler-bots/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/@geosuite/ai-crawler-bots.svg)](https://www.npmjs.com/package/@geosuite/ai-crawler-bots)
 [![npm downloads](https://img.shields.io/npm/dm/@geosuite/ai-crawler-bots.svg)](https://www.npmjs.com/package/@geosuite/ai-crawler-bots)
+[![GitHub stars](https://img.shields.io/github/stars/TryGeoSuite/ai-crawler-bots?style=flat&logo=github)](https://github.com/TryGeoSuite/ai-crawler-bots/stargazers)
+[![AI crawlers: audited](https://img.shields.io/badge/AI%20crawlers-audited-5b8def?logo=robotframework&logoColor=white)](#use-in-ci-github-action)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+### ▶ [Try it live](https://ai-crawl-check.geosuite.workers.dev) — paste any URL, no install
+
+No login, no tracking: it fetches only the target's `robots.txt` and scores it against every known AI bot. Or run it yourself:
+
+```bash
+# No install required — audit any site against every known AI bot:
+npx @geosuite/ai-crawler-bots robots https://example.com
+```
+
+```text
+Fetched https://example.com/robots.txt  (HTTP 200)
+AI visibility score: 40/100
+
+BLOCKED (3)
+  GPTBot            → disallow: / (line 30, cloudflare_managed_content)
+  ClaudeBot         → disallow: / (line 33, cloudflare_managed_content)
+  Google-Extended   → disallow: / (line 36, cloudflare_managed_content)
+ALLOWED (5)
+  OAI-SearchBot · PerplexityBot · Amazonbot · ChatGPT-User · Perplexity-User
+```
+
+**[Why this exists](#what-this-is-and-why-it-exists)** · **[CLI](#cli)** · **[Use in CI](#use-in-ci-github-action)** · **[Contributing](#contributing)**
+
+<sub>Created and invented by **[Matteo Perino](https://github.com/matte97p)** ([LinkedIn](https://www.linkedin.com/in/matteo-perino-27642016b/)) · maintained under [GeoSuite](https://trygeosuite.it).</sub>
 
 ---
 
@@ -280,6 +307,67 @@ It also doesn't verify the request actually came from the operator — anyone ca
 
 ---
 
+## Use in CI (GitHub Action)
+
+`robots` exits non-zero when a gate fails, so it doubles as a CI check — catch the day someone flips Cloudflare's "Block AI bots" toggle, or a `robots.txt` edit accidentally locks ChatGPT Search out of your site, *before* it ships.
+
+### GitHub Action
+
+```yaml
+# .github/workflows/ai-crawl-check.yml
+name: AI Crawl Check
+on:
+  pull_request:
+    paths: ['**/robots.txt']
+  schedule:
+    - cron: '0 6 * * 1'   # re-check prod weekly — CDN policies drift under you
+jobs:
+  ai-crawl-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: TryGeoSuite/ai-crawler-bots@v1
+        with:
+          url: https://example.com
+          assert-allowed: oai-searchbot,perplexitybot,chatgpt-user  # citation/traffic bots MUST stay reachable
+          assert-blocked: gptbot,claudebot                          # bulk-training crawlers MUST stay blocked
+          fail-under: 50                                            # optional floor on the AI-visibility score
+```
+
+The Action writes a per-bot verdict table to the job summary, exposes `score` / `blocked` / `allowed` as step outputs, and annotates the PR inline when a gate fails. A copy-paste workflow lives in [`examples/ci-ai-crawl-check.yml`](./examples/ci-ai-crawl-check.yml).
+
+| Input | Description |
+| --- | --- |
+| `url` *(required)* | Site whose `/robots.txt` is audited. |
+| `assert-allowed` | Comma-separated bot ids that must be reachable — fail if any is blocked. |
+| `assert-blocked` | Comma-separated bot ids that must be blocked — fail if any is reachable. |
+| `fail-under` | Fail if the AI-visibility score (0-100) is below this. |
+| `timeout` | Per-request timeout in ms. |
+
+Bot ids are the `id` field in [`bots.json`](./bots.json) (`gptbot`, `claudebot`, `oai-searchbot`, `perplexitybot`, …); run `geosuite-bots list` to see them all.
+
+### Any other CI (GitLab, CircleCI, pre-commit, …)
+
+The same gate flags live on the CLI, so any runner with Node 20+ works:
+
+```bash
+npx @geosuite/ai-crawler-bots robots https://example.com \
+  --assert-allowed=oai-searchbot,perplexitybot \
+  --assert-blocked=gptbot,claudebot \
+  --fail-under=50
+```
+
+Exit code is `0` when every condition holds, `1` when any fails (the failing conditions print to stderr), `2` on a bad flag. Add `--json` to also capture the full machine-readable verdict.
+
+### Add the badge
+
+Show visitors you keep AI-crawler access under control:
+
+```markdown
+[![AI crawlers: audited](https://img.shields.io/badge/AI%20crawlers-audited-5b8def?logo=robotframework&logoColor=white)](https://github.com/TryGeoSuite/ai-crawler-bots)
+```
+
+---
+
 ## Example robots.txt
 
 See [`examples/robots.txt`](./examples/robots.txt) for an annotated template tuned for a typical brand site that wants AI search visibility without donating content to bulk training. Copy, adjust the `Disallow:` paths and the `Sitemap:` URL, drop it at the root of your site.
@@ -345,3 +433,16 @@ Ideated, designed and validated by Matteo Perino. Implementation written with AI
 ## License
 
 [MIT](./LICENSE) — copyright 2026 Matteo Perino and GeoSuite. Use it however you want.
+
+## Related tools — the GeoSuite GEO toolkit
+
+- [ai-crawler-bots](https://github.com/TryGeoSuite/ai-crawler-bots) — which AI crawlers can read your site (robots.txt audit + CI gate)
+- [llms-txt-generator](https://github.com/TryGeoSuite/llms-txt-generator) — sitemap.xml → llms.txt (the llmstxt.org standard)
+- [schema-templates](https://github.com/TryGeoSuite/schema-templates) — validated, copy-paste schema.org JSON-LD
+- [sitemap-builder](https://github.com/TryGeoSuite/sitemap-builder) — crawl a site, emit a valid sitemap.xml
+
+Also from the same author: [rlsgrid](https://github.com/matte97p/rlsgrid) · [pentest-framework](https://github.com/matte97p/pentest-framework) · [demowright](https://github.com/matte97p/demowright)
+
+---
+
+⭐ If `ai-crawler-bots` is useful, [give it a star](https://github.com/TryGeoSuite/ai-crawler-bots) — it helps other people find the toolkit.

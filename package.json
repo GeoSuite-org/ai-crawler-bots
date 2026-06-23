@@ -28,7 +28,7 @@
   "scripts": {
     "test": "node --test test/*.js",
     "coverage": "node --experimental-test-coverage --test test/*.js",
-    "lint": "node --check src/index.js && node --check src/robots.js && node --check src/logs.js && node --check src/referrers.js && node --check src/ai.js && node --check bin/cli.js && node --check test/test-loader.js && node --check test/test-robots.js && node --check test/test-ai.js && node --check test/test-logs.js && node --check test/test-referrers.js"
+    "lint": "node --check src/index.js && node --check src/robots.js && node --check src/analyze.js && node --check src/logs.js && node --check src/referrers.js && node --check src/ai.js && node --check bin/cli.js && node --check test/test-loader.js && node --check test/test-robots.js && node --check test/test-ai.js && node --check test/test-logs.js && node --check test/test-referrers.js && node --check test/test-gate.js && node --check test/test-analyze.js && node --check action/run.mjs && node --check web/worker.js && node --check web/page.js"
   },
   "engines": {
     "node": ">=20"

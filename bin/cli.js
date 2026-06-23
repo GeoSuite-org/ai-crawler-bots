@@ -7,7 +7,7 @@
 import { createInterface } from 'node:readline';
 import { createReadStream } from 'node:fs';
 import { createGunzip } from 'node:zlib';
-import { loadBots, getBot, testBot, testAllBots, checkRobots, createLogAnalyzer, analyzeReferrers } from '../src/index.js';
+import { loadBots, getBot, testBot, testAllBots, checkRobots, evaluateGate, createLogAnalyzer, analyzeReferrers } from '../src/index.js';
 import { chat, detectProvider } from '../src/ai.js';
 
 const [, , command, ...rest] = process.argv;
@@ -44,10 +44,16 @@ function printHelp() {
       '  geosuite-bots list',
       '  geosuite-bots check <url> [--bot=<id>] [--timeout=<ms>] [--method=GET|HEAD]',
       '  geosuite-bots robots <url> [--timeout=<ms>] [--json] [--ai]',
+      '                     [--fail-under=<n>] [--assert-allowed=<ids>] [--assert-blocked=<ids>]',
       '  geosuite-bots watch  <url> [--interval=<s>] [--timeout=<ms>] [--json]',
       '  geosuite-bots logs  <file|.gz|-> [--since=<date>] [--until=<date>] [--json]',
       '  geosuite-bots referrers <file.csv|-> [--source-col=<h>] [--count-col=<h>] [--json]',
       '  geosuite-bots show <id>',
+      '',
+      'CI gate (robots):',
+      '  --fail-under=<n>        exit 1 if the AI-visibility score is below n',
+      '  --assert-allowed=<ids>  exit 1 if any listed bot is blocked    (e.g. oai-searchbot,perplexitybot)',
+      '  --assert-blocked=<ids>  exit 1 if any listed bot is NOT blocked (e.g. gptbot,claudebot)',
       '',
       'AI mode (opt-in):',
       '  Set OPENAI_API_KEY or ANTHROPIC_API_KEY and pass --ai to a',
@@ -59,6 +65,8 @@ function printHelp() {
       '  geosuite-bots check https://example.com',
       '  geosuite-bots check https://example.com --bot=gptbot',
       '  geosuite-bots robots https://example.com',
+      '  geosuite-bots robots https://example.com --assert-allowed=oai-searchbot,perplexitybot',
+      '  geosuite-bots robots https://example.com --assert-blocked=gptbot --fail-under=60',
       '  geosuite-bots watch  https://example.com --interval=60',
       '  geosuite-bots logs  ./access.log',
       '  geosuite-bots logs  ./access.log --since=2026-05-01 --json',
@@ -155,15 +163,47 @@ async function cmdCheck(positional, flags) {
 async function cmdRobots(positional, flags) {
   const url = positional[0];
   if (!url) {
-    process.stderr.write('Usage: geosuite-bots robots <url> [--timeout=<ms>] [--json]\n');
+    process.stderr.write(
+      'Usage: geosuite-bots robots <url> [--timeout=<ms>] [--json] [--fail-under=<n>] [--assert-allowed=<ids>] [--assert-blocked=<ids>]\n',
+    );
     process.exit(2);
   }
+
+  const gateRequested =
+    flags['fail-under'] !== undefined ||
+    flags['assert-allowed'] !== undefined ||
+    flags['assert-blocked'] !== undefined;
+
+  if (flags['fail-under'] !== undefined && Number.isNaN(Number(flags['fail-under']))) {
+    process.stderr.write(`Invalid --fail-under: ${flags['fail-under']} (expected a number 0-100)\n`);
+    process.exit(2);
+  }
+
   const result = await checkRobots(url, {
     timeoutMs: flags.timeout ? Number(flags.timeout) : undefined,
   });
 
+  // Apply the CI gate (when any gate flag was passed) and exit with a non-zero
+  // status on failure. Gate output goes to stderr so `--json` keeps stdout a
+  // clean machine-readable document for piping.
+  const runGate = () => {
+    if (!gateRequested) return;
+    const { passed, failures } = evaluateGate(result, {
+      failUnder: flags['fail-under'],
+      assertAllowed: flags['assert-allowed'],
+      assertBlocked: flags['assert-blocked'],
+    });
+    if (passed) {
+      process.stderr.write(`\nCI gate passed (score ${result.score}/100).\n`);
+      process.exit(0);
+    }
+    process.stderr.write('\nCI gate failed:\n' + failures.map((f) => `  ✗ ${f}`).join('\n') + '\n');
+    process.exit(1);
+  };
+
   if (flags.json) {
     process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+    runGate();
     return;
   }
 
@@ -225,16 +265,18 @@ async function cmdRobots(positional, flags) {
       process.stderr.write(
         '--ai requested but no LLM API key found. Set OPENAI_API_KEY or ANTHROPIC_API_KEY.\n',
       );
-      return;
-    }
-    process.stdout.write('AI summary\n');
-    try {
-      const summary = await aiSummariseRobots(result);
-      process.stdout.write(summary + '\n');
-    } catch (err) {
-      process.stderr.write(`AI summary skipped: ${err.message}\n`);
+    } else {
+      process.stdout.write('AI summary\n');
+      try {
+        const summary = await aiSummariseRobots(result);
+        process.stdout.write(summary + '\n');
+      } catch (err) {
+        process.stderr.write(`AI summary skipped: ${err.message}\n`);
+      }
     }
   }
+
+  runGate();
 }
 
 /**

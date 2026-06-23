@@ -1,0 +1,32 @@
+name = "ai-crawl-check"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+# No nodejs_compat needed: the Worker imports only the pure ../src/analyze.js
+# core and bundles ../bots.json — zero `node:*` usage.
+
+# Server-side usage counts via Analytics Engine — no cookies, no client tracking.
+# One data point per /api/check (target domain + score). The dataset is created
+# automatically on the first write from the Worker; query it via the Analytics
+# Engine SQL API. worker.js guards on `env.AE`, so this is safe to toggle.
+[[analytics_engine_datasets]]
+binding = "AE"
+dataset = "ai_crawl_check"
+
+# ⚠️ Deploy to your PERSONAL Cloudflare account — NOT the work/Cato one.
+# `wrangler deploy` targets whichever account you're logged into
+# (check with `wrangler whoami`) or CLOUDFLARE_ACCOUNT_ID. To avoid any
+# mistake, pin your personal account id explicitly:
+# account_id = "<your-personal-cloudflare-account-id>"
+
+# worker.js imports ../src/index.js and ../bots.json — wrangler's bundler
+# follows those relative imports up into the repo root automatically.
+#
+# To put it on your own domain, uncomment and edit (requires the zone on your
+# Cloudflare account):
+#
+# routes = [
+#   { pattern = "crawlcheck.example.com", custom_domain = true }
+# ]
+#
+# Otherwise `wrangler deploy` publishes it to
+#   https://ai-crawl-check.<your-subdomain>.workers.dev
