@@ -5,7 +5,8 @@ A tiny [Cloudflare Worker](https://developers.cloudflare.com/workers/) that puts
 `robots.txt` and scores it against every known AI crawler. Same analysis as the
 CLI (`analyzeRobots()` + the bundled `bots.json`) — just reachable from a browser.
 
-- `GET /` — the page (`page.js`)
+- `GET /` — the page (`page.js`), bilingual **en/it** (auto-detected from `Accept-Language`; `/en` · `/it` force a locale)
+- `GET /og.png` · `GET /favicon.svg` — Open Graph share image (1200×630) + favicon
 - `GET /api/check?url=https://example.com` — JSON verdict
 - `GET /bots` — the full curated bot list as JSON; `GET /bots/<id>` — a single bot (a free public API over `bots.json`)
 
