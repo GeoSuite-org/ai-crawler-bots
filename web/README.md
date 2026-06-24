@@ -5,7 +5,8 @@ A tiny [Cloudflare Worker](https://developers.cloudflare.com/workers/) that puts
 `robots.txt` and scores it against every known AI crawler. Same analysis as the
 CLI (`analyzeRobots()` + the bundled `bots.json`) — just reachable from a browser.
 
-- `GET /` — the page (`page.js`)
+- `GET /` — the page (`page.js`), bilingual **en/it** (auto-detected from `Accept-Language`; `/en` · `/it` force a locale)
+- `GET /og.png` · `GET /favicon.svg` — Open Graph share image (1200×630) + favicon
 - `GET /api/check?url=https://example.com` — JSON verdict
 - `GET /bots` — the full curated bot list as JSON; `GET /bots/<id>` — a single bot (a free public API over `bots.json`)
 
@@ -33,7 +34,7 @@ custom domain instead, uncomment the `routes` block in [`wrangler.toml`](./wrang
 ## Auto-deploy (CI)
 
 [`.github/workflows/deploy-web.yml`](../.github/workflows/deploy-web.yml) redeploys
-this Worker on every push to `production` that touches `web/`, `src/analyze.js`,
+this Worker on every push to `main` that touches `web/`, `src/analyze.js`,
 or `bots.json`. Add two repo secrets (Settings → Secrets and variables → Actions):
 
 - `CLOUDFLARE_API_TOKEN` — a token scoped **Edit Cloudflare Workers** from the
