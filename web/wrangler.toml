@@ -4,6 +4,12 @@ compatibility_date = "2025-01-01"
 # No nodejs_compat needed: the Worker imports only the pure ../src/analyze.js
 # core and bundles ../bots.json — zero `node:*` usage.
 
+# Bundle the OG share image (1200×630 PNG) as an ArrayBuffer the Worker serves
+# at /og.png — no external host, CSP-safe.
+rules = [
+  { type = "Data", globs = ["**/*.png"], fallthrough = false }
+]
+
 # Server-side usage counts via Analytics Engine — no cookies, no client tracking.
 # One data point per /api/check (target domain + score). The dataset is created
 # automatically on the first write from the Worker; query it via the Analytics

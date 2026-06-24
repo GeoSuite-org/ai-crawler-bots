@@ -1,14 +1,129 @@
-// The single-page UI served at `/`. Kept as a plain template string (no
-// `${}` interpolation, no backticks inside) so it drops straight into the
-// Worker response. All CSS/JS is inline — no external assets, CSP-friendly.
+// The single-page UI served at `/`. Bilingual (en/it): the worker picks a locale
+// and calls renderPage(lang); all copy lives in the S dictionary below. Tool and
+// product names (AI Crawl Check, GPTBot, GeoSuite…) stay as-is — only prose is
+// translated. The page has interactive client-side JS that builds result HTML,
+// so its visitor-facing strings are injected per language as a JS I18N dictionary
+// (var I18N) consumed by the inline <script>. All CSS/JS is inline — no external
+// assets, CSP-friendly.
 
-export const PAGE = `<!doctype html>
-<html lang="en">
+const BASE = 'https://ai-crawl-check.geosuite.workers.dev';
+
+const S = {
+  en: {
+    title: 'AI Crawl Check — which AI bots can read your site?',
+    desc: 'Paste a URL and see which AI crawlers (GPTBot, ClaudeBot, PerplexityBot, Google-Extended) your robots.txt allows or blocks, with an AI-visibility score.',
+    ogTitle: 'AI Crawl Check',
+    ogDesc: 'Which AI crawlers can read your site? Paste a URL — we read its robots.txt and score it against every known AI bot.',
+    h1Tag: 'AI Crawl Check',
+    lead: `Which AI crawlers can read your site? Paste a URL — we read its <code>robots.txt</code> and score it against every known AI bot.`,
+    promoTxt: `<strong>Built by GeoSuite</strong> — the AI-visibility platform that measures &amp; improves how ChatGPT, Gemini, Claude &amp; Perplexity describe your brand.`,
+    promoCta: 'Explore GeoSuite →',
+    star: '★ Star on GitHub',
+    placeholder: 'https://example.com',
+    check: 'Check',
+    hint: `No login, no tracking. We fetch only <code>/robots.txt</code> — nothing else.`,
+    footer: `Open source (MIT): <a href="https://github.com/TryGeoSuite/ai-crawler-bots">GitHub</a>
+    · <a href="https://www.npmjs.com/package/@geosuite/ai-crawler-bots">npm</a>
+    · <code>npx @geosuite/ai-crawler-bots robots &lt;url&gt;</code><br>
+    Built by <a href="https://github.com/matte97p">Matteo Perino</a> · a <a href="https://trygeosuite.it">GeoSuite</a> open-source tool.`,
+    copy: 'copy',
+    copied: 'copied',
+    // Strings consumed by the inline client-side script (result rendering).
+    js: {
+      checkFailed: 'Could not check that URL: ',
+      reading: 'Reading ',
+      robotsSuffix: '/robots.txt …',
+      networkError: 'Network error — try again.',
+      scoreHeading: 'AI-visibility score',
+      managedPre: '⚠️ A managed section (<code>',
+      managedMid: '</code>) overrides your file and blocks: ',
+      managedPost: '.',
+      colBlocked: 'Blocked',
+      colAllowed: 'Allowed',
+      colNotSet: 'Not set',
+      none: 'none',
+      automatePre: '⚙️ <strong>Automate it</strong> — drop the ',
+      automateActionLink: 'GitHub Action',
+      automateMid: ' into your CI so a bad robots.txt change fails the build, or run ',
+      automateCmd: 'npx @geosuite/ai-crawler-bots robots &lt;url&gt;',
+      automateHelpedPre: '. If it helped, ',
+      automateStarLink: '★ star it on GitHub',
+      automateHelpedPost: '.',
+    },
+  },
+  it: {
+    title: 'AI Crawl Check — quali bot AI possono leggere il tuo sito?',
+    desc: 'Incolla un URL e scopri quali crawler AI (GPTBot, ClaudeBot, PerplexityBot, Google-Extended) il tuo robots.txt permette o blocca, con un punteggio di visibilità AI.',
+    ogTitle: 'AI Crawl Check',
+    ogDesc: 'Quali crawler AI possono leggere il tuo sito? Incolla un URL — leggiamo il suo robots.txt e lo valutiamo contro ogni bot AI noto.',
+    h1Tag: 'AI Crawl Check',
+    lead: `Quali crawler AI possono leggere il tuo sito? Incolla un URL — leggiamo il suo <code>robots.txt</code> e lo valutiamo contro ogni bot AI noto.`,
+    promoTxt: `<strong>Creato da GeoSuite</strong> — la piattaforma di visibilità AI che misura e migliora come ChatGPT, Gemini, Claude e Perplexity descrivono il tuo brand.`,
+    promoCta: 'Scopri GeoSuite →',
+    star: '★ Metti una stella su GitHub',
+    placeholder: 'https://esempio.com',
+    check: 'Controlla',
+    hint: `Niente login, niente tracciamento. Leggiamo solo <code>/robots.txt</code> — nient'altro.`,
+    footer: `Open source (MIT): <a href="https://github.com/TryGeoSuite/ai-crawler-bots">GitHub</a>
+    · <a href="https://www.npmjs.com/package/@geosuite/ai-crawler-bots">npm</a>
+    · <code>npx @geosuite/ai-crawler-bots robots &lt;url&gt;</code><br>
+    Creato da <a href="https://github.com/matte97p">Matteo Perino</a> · uno strumento open-source di <a href="https://trygeosuite.it">GeoSuite</a>.`,
+    copy: 'copia',
+    copied: 'copiato',
+    js: {
+      checkFailed: 'Impossibile controllare questo URL: ',
+      reading: 'Lettura di ',
+      robotsSuffix: '/robots.txt …',
+      networkError: 'Errore di rete — riprova.',
+      scoreHeading: 'Punteggio di visibilità AI',
+      managedPre: '⚠️ Una sezione gestita (<code>',
+      managedMid: '</code>) sovrascrive il tuo file e blocca: ',
+      managedPost: '.',
+      colBlocked: 'Bloccati',
+      colAllowed: 'Permessi',
+      colNotSet: 'Non impostati',
+      none: 'nessuno',
+      automatePre: '⚙️ <strong>Automatizzalo</strong> — inserisci la ',
+      automateActionLink: 'GitHub Action',
+      automateMid: ' nella tua CI così una modifica sbagliata al robots.txt fa fallire la build, oppure esegui ',
+      automateCmd: 'npx @geosuite/ai-crawler-bots robots &lt;url&gt;',
+      automateHelpedPre: '. Se ti è stato utile, ',
+      automateStarLink: '★ metti una stella su GitHub',
+      automateHelpedPost: '.',
+    },
+  },
+};
+
+// lang: 'en' | 'it'.
+export function renderPage(lang) {
+  const t = S[lang] || S.en;
+  const ogLocale = lang === 'it' ? 'it_IT' : 'en_US';
+
+  return `<!doctype html>
+<html lang="${lang}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AI Crawl Check — which AI bots can read your site?</title>
-<meta name="description" content="Paste a URL and see which AI crawlers (GPTBot, ClaudeBot, PerplexityBot, Google-Extended) your robots.txt allows or blocks, with an AI-visibility score.">
+<title>${t.title}</title>
+<meta name="description" content="${t.desc}">
+<link rel="canonical" href="${BASE}/${lang}">
+<link rel="alternate" hreflang="en" href="${BASE}/en">
+<link rel="alternate" hreflang="it" href="${BASE}/it">
+<link rel="alternate" hreflang="x-default" href="${BASE}/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="GeoSuite Open">
+<meta property="og:title" content="${t.ogTitle}">
+<meta property="og:description" content="${t.ogDesc}">
+<meta property="og:url" content="${BASE}/${lang}">
+<meta property="og:image" content="${BASE}/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="${ogLocale}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${t.ogTitle}">
+<meta name="twitter:description" content="${t.ogDesc}">
+<meta name="twitter:image" content="${BASE}/og.png">
 <style>
   :root {
     --bg: #0b0f17; --panel: #131a26; --line: #243042; --text: #e7edf5;
@@ -20,7 +135,11 @@ export const PAGE = `<!doctype html>
     font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 760px; margin: 0 auto; padding: 48px 20px 80px; }
+  .wrap { position: relative; max-width: 760px; margin: 0 auto; padding: 48px 20px 80px; }
+  .lang { position: absolute; top: 18px; right: 20px; display: flex; gap: 6px; font-size: .8rem; }
+  .lang a { color: var(--muted); text-decoration: none; padding: 4px 9px; border-radius: 7px; border: 1px solid transparent; }
+  .lang a.on { color: var(--text); border-color: var(--line); background: var(--panel); }
+  .lang a:hover { color: var(--text); }
   header h1 { font-size: 1.7rem; margin: 0 0 6px; letter-spacing: -0.02em; }
   header p { color: var(--muted); margin: 0 0 28px; }
   .promo-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
@@ -81,35 +200,37 @@ export const PAGE = `<!doctype html>
 </head>
 <body>
 <div class="wrap">
+  <nav class="lang" aria-label="Language">
+    <a href="/en"${lang === 'en' ? ' class="on"' : ''}>EN</a>
+    <a href="/it"${lang === 'it' ? ' class="on"' : ''}>IT</a>
+  </nav>
   <header>
-    <h1>🤖 AI Crawl Check</h1>
-    <p>Which AI crawlers can read your site? Paste a URL — we read its <code>robots.txt</code> and score it against every known AI bot.</p>
+    <h1>🤖 ${t.h1Tag}</h1>
+    <p>${t.lead}</p>
   </header>
 
   <div class="promo">
-    <div class="txt"><strong>Built by GeoSuite</strong> — the AI-visibility platform that measures &amp; improves how ChatGPT, Gemini, Claude &amp; Perplexity describe your brand.</div>
+    <div class="txt">${t.promoTxt}</div>
     <div class="promo-actions">
-      <a class="promo-cta" href="https://trygeosuite.it" target="_blank" rel="noopener">Explore GeoSuite →</a>
-      <a class="gh" href="https://github.com/TryGeoSuite/ai-crawler-bots" target="_blank" rel="noopener">★ Star on GitHub</a>
+      <a class="promo-cta" href="https://trygeosuite.it" target="_blank" rel="noopener">${t.promoCta}</a>
+      <a class="gh" href="https://github.com/TryGeoSuite/ai-crawler-bots" target="_blank" rel="noopener">${t.star}</a>
     </div>
   </div>
 
   <form id="f">
-    <input id="u" type="url" inputmode="url" placeholder="https://example.com" autocomplete="off" autofocus>
-    <button id="go" type="submit">Check</button>
+    <input id="u" type="url" inputmode="url" placeholder="${t.placeholder}" autocomplete="off" autofocus>
+    <button id="go" type="submit">${t.check}</button>
   </form>
-  <p class="hint">No login, no tracking. We fetch only <code>/robots.txt</code> — nothing else.</p>
+  <p class="hint">${t.hint}</p>
 
   <div id="out"></div>
 
   <footer>
-    Open source (MIT): <a href="https://github.com/TryGeoSuite/ai-crawler-bots">GitHub</a>
-    · <a href="https://www.npmjs.com/package/@geosuite/ai-crawler-bots">npm</a>
-    · <code>npx @geosuite/ai-crawler-bots robots &lt;url&gt;</code><br>
-    Built by <a href="https://github.com/matte97p">Matteo Perino</a> · a <a href="https://trygeosuite.it">GeoSuite</a> open-source tool.
+    ${t.footer}
   </footer>
 </div>
 
+<script>var I18N = ${JSON.stringify(t.js)};</script>
 <script>
   var out = document.getElementById('out');
   var input = document.getElementById('u');
@@ -127,50 +248,52 @@ export const PAGE = `<!doctype html>
 
   function column(title, list, dotClass){
     var rows = list.length ? list.map(function(b){ return botRow(b, dotClass); }).join('')
-      : '<div class="bot" style="color:var(--muted)">none</div>';
+      : '<div class="bot" style="color:var(--muted)">' + I18N.none + '</div>';
     return '<div class="col"><h3>' + title + ' (' + list.length + ')</h3>' + rows + '</div>';
   }
 
   function render(r){
     if (r.error && !r.score && r.score !== 0){
-      out.innerHTML = '<div class="card err">Could not check that URL: ' + esc(r.error) + '</div>';
+      out.innerHTML = '<div class="card err">' + I18N.checkFailed + esc(r.error) + '</div>';
       return;
     }
-    var warn = r.managedBlock ? '<div class="warn">⚠️ A managed section (<code>' +
-      esc(r.managedBlock.section) + '</code>) overrides your file and blocks: ' +
-      esc(r.managedBlock.blockedBotNames.join(', ')) + '.</div>' : '';
+    var warn = r.managedBlock ? '<div class="warn">' + I18N.managedPre +
+      esc(r.managedBlock.section) + I18N.managedMid +
+      esc(r.managedBlock.blockedBotNames.join(', ')) + I18N.managedPost + '</div>' : '';
     out.innerHTML =
       '<div class="card">' +
         '<div class="scorerow">' +
           '<div class="ring" style="--score:' + r.score + ';--ring-color:' + ringColor(r.score) + '"><div>' + r.score + '</div></div>' +
           '<div class="scoremeta">' +
-            '<h2>AI-visibility score</h2>' +
+            '<h2>' + I18N.scoreHeading + '</h2>' +
             '<div class="sub"><a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(r.url) + '</a></div>' +
           '</div>' +
         '</div>' +
         warn +
         '<div class="cols">' +
-          column('Blocked', r.blocked, 'd-red') +
-          column('Allowed', r.allowed, 'd-green') +
-          column('Not set', r.notSpecified, 'd-grey') +
+          column(I18N.colBlocked, r.blocked, 'd-red') +
+          column(I18N.colAllowed, r.allowed, 'd-green') +
+          column(I18N.colNotSet, r.notSpecified, 'd-grey') +
         '</div>' +
       '</div>' +
-      '<div class="next">⚙️ <strong>Automate it</strong> — drop the ' +
-        '<a href="https://github.com/TryGeoSuite/ai-crawler-bots#use-in-ci-github-action" target="_blank" rel="noopener">GitHub Action</a> ' +
-        'into your CI so a bad robots.txt change fails the build, or run ' +
-        '<code>npx @geosuite/ai-crawler-bots robots &lt;url&gt;</code>. ' +
-        'If it helped, <a href="https://github.com/TryGeoSuite/ai-crawler-bots" target="_blank" rel="noopener">★ star it on GitHub</a>.' +
+      '<div class="next">' + I18N.automatePre +
+        '<a href="https://github.com/TryGeoSuite/ai-crawler-bots#use-in-ci-github-action" target="_blank" rel="noopener">' + I18N.automateActionLink + '</a>' +
+        I18N.automateMid +
+        '<code>' + I18N.automateCmd + '</code>' +
+        I18N.automateHelpedPre +
+        '<a href="https://github.com/TryGeoSuite/ai-crawler-bots" target="_blank" rel="noopener">' + I18N.automateStarLink + '</a>' +
+        I18N.automateHelpedPost +
       '</div>';
   }
 
   function run(url){
     if (!url) return;
     btn.disabled = true;
-    out.innerHTML = '<div class="card spin">Reading ' + esc(url) + '/robots.txt …</div>';
+    out.innerHTML = '<div class="card spin">' + I18N.reading + esc(url) + I18N.robotsSuffix + '</div>';
     fetch('/api/check?url=' + encodeURIComponent(url))
       .then(function(res){ return res.json(); })
       .then(function(r){ render(r); })
-      .catch(function(){ out.innerHTML = '<div class="card err">Network error — try again.</div>'; })
+      .catch(function(){ out.innerHTML = '<div class="card err">' + I18N.networkError + '</div>'; })
       .finally(function(){ btn.disabled = false; });
   }
 
@@ -186,3 +309,4 @@ export const PAGE = `<!doctype html>
 </script>
 </body>
 </html>`;
+}
