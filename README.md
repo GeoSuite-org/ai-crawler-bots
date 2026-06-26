@@ -2,6 +2,8 @@
 
 # ai-crawler-bots
 
+> Part of **[GeoSuite](https://trygeosuite.it)** — the AI visibility platform that measures how ChatGPT, Gemini, Claude & Perplexity cite your brand.
+
 **See which AI crawlers can read your site — and fail your build when the wrong ones get in or out.**
 
 One curated, operator-sourced list of AI crawler & training-bot user agents — GPTBot, ClaudeBot, PerplexityBot, Google-Extended and 20 more — plus a zero-dependency Node CLI (and a GitHub Action) to audit your `robots.txt`, test live reachability, read your access logs, and gate it all in CI.
@@ -448,3 +450,9 @@ Also from the same author: [rlsgrid](https://github.com/matte97p/rlsgrid) · [pe
 ---
 
 ⭐ If `ai-crawler-bots` is useful, [give it a star](https://github.com/TryGeoSuite/ai-crawler-bots) — it helps other people find the toolkit.
+
+---
+
+## Built by GeoSuite
+
+This is part of the open-source toolkit behind **[GeoSuite](https://trygeosuite.it)** — the platform that measures and improves how AI engines (ChatGPT, Gemini, Claude, Perplexity) cite your brand. [Explore the platform →](https://trygeosuite.it)
