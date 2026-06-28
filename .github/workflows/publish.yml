@@ -34,6 +34,10 @@ jobs:
           node-version: 22
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Upgrade npm for OIDC trusted publishing
+        # node 22 ships npm 10.x; trusted publishing (OIDC) needs >= 11.5
+        run: npm install -g npm@latest
+
       - name: Install dependencies
         # No-op for zero-runtime-dep repos; installs the runtime deps for
         # repos that have any (e.g. llms-txt-generator's fast-xml-parser).
@@ -114,5 +118,3 @@ jobs:
       - name: Publish
         if: steps.ver.outputs.publish == 'true'
         run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
