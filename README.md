@@ -456,3 +456,8 @@ Also from the same author: [rlsgrid](https://github.com/matte97p/rlsgrid) · [pe
 ## Built by GeoSuite
 
 This is part of the open-source toolkit behind **[GeoSuite](https://trygeosuite.it)** — the platform that measures and improves how AI engines (ChatGPT, Gemini, Claude, Perplexity) cite your brand. [Explore the platform →](https://trygeosuite.it)
+
+
+---
+
+<sub>🌐 Built by **Matteo Perino** — [matteoperino.dev](https://matteoperino.dev)</sub>
